@@ -54,9 +54,10 @@ Spusťte `Aktualizovat.bat`. Skript se podívá na GitHub, a pokud je tam nověj
 
 - složku `nastroj` (kromě `nastroj/gpu`),
 - `NAVOD - prepis nahravky.pdf`,
-- `Prepis.bat`.
+- `Prepis.bat`,
+- `data/opravy.txt` (předchozí verze se uloží vedle jako `data/opravy - záloha.txt`, takže o vlastní úpravy nepřijdete).
 
-Ničeho jiného se nedotkne: složka `Modely`, `data` (opravy, volba modelu, historie) ani nahrávky a přepisy se nemění. Před aktualizací zavřete stránku Přepisu, nebo počkejte, až doběhne rozpracovaný přepis.
+Ničeho jiného se nedotkne: složka `Modely`, zbytek `data` (volba modelu, historie) ani nahrávky a přepisy se nemění. Před aktualizací zavřete stránku Přepisu, nebo počkejte, až doběhne rozpracovaný přepis.
 
 ### Přístup k soukromému repozitáři
 

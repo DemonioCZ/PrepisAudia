@@ -1,6 +1,7 @@
 ﻿# Aktualizace nástroje z GitHubu (repozitář DemonioCZ/prepisaudia).
-# Spouští se přes Aktualizovat.bat. Aktualizuje jen složku nastroj, NAVOD a Prepis.bat.
-# Ostatního (Modely, data, nastroj\gpu, přepisy) se nedotkne.
+# Spouští se přes Aktualizovat.bat. Aktualizuje jen složku nastroj, NAVOD, Prepis.bat
+# a data\opravy.txt (předchozí verze oprav se uloží jako „opravy - záloha.txt“).
+# Ostatního (Modely, ostatní data, nastroj\gpu, přepisy) se nedotkne.
 # Soukromý repozitář: do souboru nastroj\github-token.txt vložte přístupový token (viz README).
 
 $ErrorActionPreference = 'Stop'
@@ -15,7 +16,7 @@ $tokenCesta = Join-Path $nastroj 'github-token.txt'
 
 # Které soubory se aktualizují (cesty relativně ke kořeni, s lomítkem /)
 function Aktualizovat($rel) {
-    if ($rel -eq 'Prepis.bat' -or $rel -eq 'NAVOD - prepis nahravky.pdf') { return $true }
+    if ($rel -eq 'Prepis.bat' -or $rel -eq 'NAVOD - prepis nahravky.pdf' -or $rel -eq 'data/opravy.txt') { return $true }
     if ($rel -like 'nastroj/gpu/*') { return $false }
     if ($rel -eq 'nastroj/github-token.txt' -or $rel -eq 'nastroj/aktualizace-stav.txt') { return $false }
     return ($rel -like 'nastroj/*')
@@ -91,6 +92,12 @@ try {
         $cil = Join-Path $koren ($rel.Replace('/', [System.IO.Path]::DirectorySeparatorChar))
         if ((Hash $cil) -eq (Hash $soubor.FullName)) { continue }
         New-Item -ItemType Directory -Force -Path (Split-Path $cil -Parent) | Out-Null
+        if ($rel -eq 'data/opravy.txt' -and (Test-Path -LiteralPath $cil)) {
+            # Předchozí opravy si schováme, kdybyste v nich měli něco svého
+            $zaloha = Join-Path (Split-Path $cil -Parent) 'opravy - záloha.txt'
+            Copy-Item -LiteralPath $cil -Destination $zaloha -Force
+            Write-Host '  (předchozí opravy uloženy jako data\opravy - záloha.txt)'
+        }
         Copy-Item -LiteralPath $soubor.FullName -Destination $cil -Force
         Write-Host "  aktualizováno: $rel"
         $zmeneno++
