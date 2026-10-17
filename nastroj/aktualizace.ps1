@@ -1,9 +1,6 @@
 ﻿# Aktualizace nástroje z GitHubu (repozitář DemonioCZ/prepisaudia).
-# Spouští se přes Aktualizovat.bat. Stáhne nejnovější verzi a přepíše jen soubory programu.
-# Nikdy nesahá na: složku Modely, nastroj\gpu, nahrávky a přepisy.
-# data\model.txt se nepřepisuje, pokud už existuje.
-# data\opravy.txt se přepíše jen tehdy, pokud jste ho od minulé aktualizace neměnili;
-# jinak zůstane váš a nová verze z GitHubu se uloží vedle jako „opravy (z GitHubu).txt“.
+# Spouští se přes Aktualizovat.bat. Aktualizuje jen složku nastroj, NAVOD a Prepis.bat.
+# Ostatního (Modely, data, nastroj\gpu, přepisy) se nedotkne.
 # Soukromý repozitář: do souboru nastroj\github-token.txt vložte přístupový token (viz README).
 
 $ErrorActionPreference = 'Stop'
@@ -16,13 +13,12 @@ $koren   = Split-Path $nastroj -Parent
 $stavCesta  = Join-Path $nastroj 'aktualizace-stav.txt'
 $tokenCesta = Join-Path $nastroj 'github-token.txt'
 
-# Co se nikdy nepřepisuje (cesty relativně ke kořeni, s lomítkem /)
-function Chraneno($rel) {
-    if ($rel -like 'Modely/*') { return $true }
-    if ($rel -like 'nastroj/gpu/*') { return $true }
-    if ($rel -eq 'nastroj/github-token.txt' -or $rel -eq 'nastroj/aktualizace-stav.txt') { return $true }
-    if ($rel -like 'data/*' -and $rel -ne 'data/opravy.txt' -and $rel -ne 'data/model.txt') { return $true }
-    return $false
+# Které soubory se aktualizují (cesty relativně ke kořeni, s lomítkem /)
+function Aktualizovat($rel) {
+    if ($rel -eq 'Prepis.bat' -or $rel -eq 'NAVOD - prepis nahravky.pdf') { return $true }
+    if ($rel -like 'nastroj/gpu/*') { return $false }
+    if ($rel -eq 'nastroj/github-token.txt' -or $rel -eq 'nastroj/aktualizace-stav.txt') { return $false }
+    return ($rel -like 'nastroj/*')
 }
 
 function Hash($cesta) {
@@ -32,7 +28,7 @@ function Hash($cesta) {
 
 function Konec($zprava) { Write-Host ''; Write-Host $zprava; exit }
 
-# Uložený stav z minulé aktualizace (verze a otisk opravy.txt)
+# Uložená verze z minulé aktualizace
 $stav = @{}
 if (Test-Path -LiteralPath $stavCesta) {
     Get-Content -LiteralPath $stavCesta | ForEach-Object {
@@ -89,27 +85,11 @@ try {
     $zdrojCesta = $zdroj.FullName
 
     $zmeneno = 0
-    $poznamky = @()
-    $noveOpravyHash = $stav['opravy']
     foreach ($soubor in (Get-ChildItem -LiteralPath $zdrojCesta -Recurse -File -Force)) {
         $rel = $soubor.FullName.Substring($zdrojCesta.Length + 1).Replace('\', '/')
-        if (Chraneno $rel) { continue }
+        if (-not (Aktualizovat $rel)) { continue }
         $cil = Join-Path $koren ($rel.Replace('/', [System.IO.Path]::DirectorySeparatorChar))
-        $novyHash = Hash $soubor.FullName
-        $staryHash = Hash $cil
-
-        if ($rel -eq 'data/model.txt' -and $staryHash) { continue }   # volba modelu je vaše
-        if ($rel -eq 'data/opravy.txt') {
-            $noveOpravyHash = $novyHash
-            if ($staryHash -and $staryHash -ne $novyHash -and $staryHash -ne $stav['opravy']) {
-                # opravy.txt jste upravili: necháme váš a nový uložíme vedle
-                $vedle = Join-Path (Join-Path $koren 'data') 'opravy (z GitHubu).txt'
-                Copy-Item -LiteralPath $soubor.FullName -Destination $vedle -Force
-                $poznamky += "Váš soubor data\opravy.txt jste upravili, proto zůstal beze změny.`n  Nová verze z GitHubu je vedle jako opravy (z GitHubu).txt a můžete si z ní převzít nové řádky."
-                continue
-            }
-        }
-        if ($staryHash -eq $novyHash) { continue }
+        if ((Hash $cil) -eq (Hash $soubor.FullName)) { continue }
         New-Item -ItemType Directory -Force -Path (Split-Path $cil -Parent) | Out-Null
         Copy-Item -LiteralPath $soubor.FullName -Destination $cil -Force
         Write-Host "  aktualizováno: $rel"
@@ -117,12 +97,11 @@ try {
     }
 
     # Uložit stav pro příští aktualizaci
-    $obsah = @("verze=$novaVerze", "opravy=$noveOpravyHash")
+    $obsah = @("verze=$novaVerze")
     [System.IO.File]::WriteAllLines($stavCesta, $obsah)
 
     Write-Host ''
     Write-Host "Hotovo. Aktualizováno souborů: $zmeneno."
-    $poznamky | ForEach-Object { Write-Host ''; Write-Host $_ }
 } finally {
     Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
 }

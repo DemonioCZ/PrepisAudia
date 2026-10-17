@@ -13,4 +13,3 @@ data/*
 # Místní soubory aktualizace (token a stav)
 nastroj/github-token.txt
 nastroj/aktualizace-stav.txt
-data/opravy (z GitHubu).txt

@@ -50,14 +50,13 @@ Pokud má počítač grafickou kartu NVIDIA, při prvním spuštění se automat
 
 ## Aktualizace
 
-Spusťte `Aktualizovat.bat`. Skript se podívá na GitHub, a pokud je tam novější verze, stáhne ji a nahradí soubory programu. Nejdřív zavřete stránku Přepisu, nebo počkejte, až doběhne rozpracovaný přepis.
+Spusťte `Aktualizovat.bat`. Skript se podívá na GitHub, a pokud je tam novější verze, stáhne ji a aktualizuje **jen**:
 
-Co aktualizace nikdy nepřepíše:
+- složku `nastroj` (kromě `nastroj/gpu`),
+- `NAVOD - prepis nahravky.pdf`,
+- `Prepis.bat`.
 
-- složku `Modely` a stažené GPU soubory v `nastroj/gpu`,
-- nahrávky, přepisy a historii ve složce `data`,
-- `data/model.txt` (vaši volbu modelu),
-- `data/opravy.txt`, pokud jste ho od minulé aktualizace upravili. Nová verze z GitHubu se pak uloží vedle jako `data/opravy (z GitHubu).txt` a nové řádky si můžete převzít ručně.
+Ničeho jiného se nedotkne: složka `Modely`, `data` (opravy, volba modelu, historie) ani nahrávky a přepisy se nemění. Před aktualizací zavřete stránku Přepisu, nebo počkejte, až doběhne rozpracovaný přepis.
 
 ### Přístup k soukromému repozitáři
 
