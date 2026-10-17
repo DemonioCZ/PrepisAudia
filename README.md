@@ -7,6 +7,7 @@ Jednoduchý nástroj pro přepis nahrávek (mp3, wav…) na text v češtině po
 | Soubor / složka | K čemu slouží |
 |---|---|
 | `Prepis.bat` | Spuštění dvojklikem (nebo na něj přetáhněte nahrávky). Otevře stránku v prohlížeči. |
+| `Aktualizovat.bat` | Stáhne z GitHubu novější verzi programu (viz níže). |
 | `NAVOD - prepis nahravky.pdf` | Návod k použití. |
 | `nastroj/` | Program whisper.cpp, převod zvuku a ovládací stránka. |
 | `data/opravy.txt` | Seznam oprav slov, která přepis komolí (`špatně => správně`). |
@@ -46,3 +47,25 @@ PrepisAudia/
 3. Přepis (`.txt`) se uloží vedle nahrávky, verze s časy jako `… - časy.txt`.
 
 Pokud má počítač grafickou kartu NVIDIA, při prvním spuštění se automaticky stáhne rychlejší GPU verze do `nastroj/gpu` (do repozitáře se neukládá).
+
+## Aktualizace
+
+Spusťte `Aktualizovat.bat`. Skript se podívá na GitHub, a pokud je tam novější verze, stáhne ji a nahradí soubory programu. Nejdřív zavřete stránku Přepisu, nebo počkejte, až doběhne rozpracovaný přepis.
+
+Co aktualizace nikdy nepřepíše:
+
+- složku `Modely` a stažené GPU soubory v `nastroj/gpu`,
+- nahrávky, přepisy a historii ve složce `data`,
+- `data/model.txt` (vaši volbu modelu),
+- `data/opravy.txt`, pokud jste ho od minulé aktualizace upravili. Nová verze z GitHubu se pak uloží vedle jako `data/opravy (z GitHubu).txt` a nové řádky si můžete převzít ručně.
+
+### Přístup k soukromému repozitáři
+
+Repozitář je soukromý, proto skript potřebuje přístupový token (jen pro čtení):
+
+1. Na GitHubu otevřete **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
+2. U **Repository access** zvolte *Only select repositories* a vyberte `PrepisAudia`.
+3. U **Permissions → Repository permissions** nastavte **Contents: Read-only**. Nic dalšího není potřeba.
+4. Vytvořený token zkopírujte do souboru `nastroj/github-token.txt` (jen samotný token, jeden řádek).
+
+Soubor s tokenem se do repozitáře nikdy nenahraje. Pokud by byl repozitář veřejný, token není potřeba.
