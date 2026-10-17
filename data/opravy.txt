@@ -1,0 +1,19 @@
+﻿# SEZNAM OPRAV PŘEPISU
+# Na každý řádek napište:   špatně => správně
+# Po přepisu se v textu všechna „špatně“ nahradí za „správně“.
+# Hodí se na slova a jména, která přepis opakovaně komolí.
+# Rozlišují se velká a malá písmena. Řádky s # na začátku se ignorují.
+
+tradičnidov => tradiční lidov
+tradiční dov => tradiční lidov
+zdorazujeme => zdůrazňujeme
+spravodaj => zpravodaj
+
+# Doplněno podle přepisu Standardní záznam 2 (17. 10. 2026)
+armétní kalendář => adventní kalendář
+arvitní kalendář => adventní kalendář
+ve srážnici => ve Strážnici
+ve Strácnici => ve Strážnici
+Marie-Therésie => Marie Terezie
+doutorka => doktorka
+rozjebírat => rozebírat

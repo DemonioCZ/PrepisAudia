@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Přepis nahrávek</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --text: #1d2330; --muted: #667085; --line: #e3e6ec;
+    --accent: #2f6fed; --accent-text: #ffffff; --ok: #1a8f4c; --err: #c4302b; --track: #e8ecf3;
+    --preview: #f7f8fa;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15181e; --panel: #1e222a; --text: #e8eaef; --muted: #9aa3b2; --line: #2d323c;
+      --accent: #5b8ff9; --accent-text: #0d1117; --ok: #3fbf74; --err: #f0716b; --track: #2b313b;
+      --preview: #191c23;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 40px 16px 64px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  h1 { font-size: 28px; margin: 0; font-weight: 600; }
+  .sub { color: var(--muted); margin: 4px 0 0; }
+  select { font: inherit; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); padding: 8px 10px; }
+  .volba { display: none; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
+  .chip { font-size: 13px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; background: var(--panel); }
+  .actions { margin: 28px 0 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  button { font: inherit; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text);
+    padding: 8px 14px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); padding: 12px 22px; font-weight: 600; }
+  button:disabled { opacity: .55; cursor: default; }
+  button.stop { color: var(--err); margin-left: auto; }
+  button.stop:hover { border-color: var(--err); }
+  .link { background: none; border: none; color: var(--accent); padding: 0; text-decoration: underline; }
+  .banner { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+    border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; }
+  .empty { color: var(--muted); text-align: center; padding: 48px 16px; border: 2px dashed var(--line); border-radius: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+  .row { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  .name { font-weight: 600; word-break: break-word; }
+  .state { color: var(--muted); font-size: 14px; }
+  .state.ok { color: var(--ok); } .state.err { color: var(--err); }
+  .bar { height: 8px; background: var(--track); border-radius: 999px; overflow: hidden; margin: 12px 0 4px; }
+  .bar > div { height: 100%; background: var(--accent); width: 0; transition: width .4s; }
+  .bar.ok > div { background: var(--ok); }
+  .bar.busy > div { width: 30%; animation: busy 1.2s ease-in-out infinite; }
+  @keyframes busy { 0% { margin-left: -30%; } 100% { margin-left: 100%; } }
+  .preview { background: var(--preview); border-radius: 8px; padding: 10px 12px; margin-top: 10px;
+    color: var(--muted); font-size: 14px; max-height: 120px; overflow: hidden; }
+  .preview p { margin: 0; }
+  .buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  textarea { width: 100%; min-height: 220px; margin-top: 12px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--preview); color: var(--text); font-family: inherit; font-size: 14px; line-height: 1.5; padding: 10px 12px; resize: vertical; }
+  h2 { font-size: 20px; font-weight: 600; margin: 36px 0 12px; }
+  .hist { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .hrow { border-top: 1px solid var(--line); }
+  .hrow:first-child { border-top: none; }
+  .hhead { display: flex; gap: 12px; justify-content: space-between; align-items: baseline; flex-wrap: wrap;
+    width: 100%; text-align: left; border: none; border-radius: 0; padding: 12px 20px; background: none; }
+  .hhead:hover { background: var(--preview); }
+  .hbody { padding: 0 20px 16px; }
+  .chev { display: inline-block; width: 1em; color: var(--muted); }
+  .casy { position: relative; margin-top: 12px; max-height: 420px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--preview); padding: 6px 0; font-size: 14px; }
+  .casy .r { display: flex; gap: 10px; padding: 3px 12px; align-items: baseline; }
+  .casy .r.ted { background: var(--track); }
+  button.cas { font-variant-numeric: tabular-nums; font-size: 13px; padding: 1px 7px; color: var(--accent); flex: none; }
+  .hledani { width: 100%; font: inherit; border-radius: 8px; border: 1px solid var(--line); background: var(--panel);
+    color: var(--text); padding: 10px 14px; margin-bottom: 12px; }
+  .vysledky { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 16px; max-height: 420px; overflow-y: auto; }
+  .vysledek { display: grid; grid-template-columns: 72px minmax(0, 200px) 1fr; gap: 12px; align-items: baseline;
+    padding: 8px 16px; border-top: 1px solid var(--line); font-size: 14px; }
+  .vysledek.hlavicka { position: sticky; top: 0; background: var(--panel); border-top: none; color: var(--muted);
+    font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--line); }
+  .vysledek.hlavicka + .vysledek { border-top: none; }
+  .vysledek .kde { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vysledek button.cas { justify-self: start; }
+  .nic { padding: 12px 16px; color: var(--muted); font-size: 14px; }
+  mark { background: #ffe58a; color: inherit; border-radius: 3px; padding: 0 1px; }
+  @media (prefers-color-scheme: dark) { mark { background: #6b5a14; } }
+  #prehravac { position: fixed; left: 0; right: 0; bottom: 0; display: none; background: var(--panel);
+    border-top: 1px solid var(--line); box-shadow: 0 -4px 16px rgba(0,0,0,.08); padding: 10px 16px; }
+  #prehravac .in { max-width: 760px; margin: 0 auto; display: flex; gap: 12px; align-items: center; }
+  #prehravac .titul { font-size: 14px; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #prehravac audio { flex: 2; min-width: 0; height: 40px; }
+  body.hraje main { padding-bottom: 120px; }
+  footer { color: var(--muted); font-size: 14px; margin-top: 28px; }
+  .gone { text-align: center; margin-top: 18vh; }
+</style>
+</head>
+<body>
+<main id="app">
+  <header>
+    <div>
+      <h1>Přepis nahrávek</h1>
+      <p class="sub">Vyberte nahrávku a přepis se uloží jako .txt vedle ní.</p>
+    </div>
+    <span class="chip" id="hw">Zjišťuji…</span>
+  </header>
+
+  <div class="actions">
+    <button class="primary" id="vybrat">Vybrat nahrávky</button>
+    <label class="volba" id="volba">Model <select id="model"></select></label>
+    <span class="state" id="hint">Podporované formáty: mp3, wav, flac</span>
+  </div>
+
+  <div id="banner"></div>
+  <div id="seznam"><div class="empty">Zatím žádná nahrávka. Klikněte na „Vybrat nahrávky“.</div></div>
+
+  <h2>Vyhledávání v přepisech</h2>
+  <input class="hledani" id="hledat" type="search" placeholder="Hledat slovo ve všech přepisech…" autocomplete="off">
+  <div id="vysledky"></div>
+
+  <h2>Historie přepisů</h2>
+  <div id="historie"><div class="empty">Zatím tu nic není. Dokončené přepisy se tu budou ukládat.</div></div>
+
+  <footer>
+    Okno prohlížeče můžete zavřít. Rozběhnutý přepis se dokončí a uloží i tak.
+    · <button class="link" id="opravy">Upravit seznam oprav</button>
+  </footer>
+</main>
+<div id="prehravac"><div class="in">
+  <span class="titul" id="titul"></span>
+  <audio id="audio" controls preload="metadata"></audio>
+  <button id="zavritPrehravac" title="Zavřít přehrávač">✕</button>
+</div></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const otevreneTexty = new Set();
+  let vybiram = false;
+  let spojeni = true;
+
+  function cas(s) {
+    if (s < 60) return s + ' s';
+    const m = Math.floor(s / 60), r = s % 60;
+    return m + ' min' + (r ? ' ' + r + ' s' : '');
+  }
+
+  function esc(t) {
+    return String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  }
+
+  async function post(cesta) {
+    return fetch(cesta, { method: 'POST' });
+  }
+
+  async function vybrat() {
+    if (vybiram) return;
+    vybiram = true;
+    $('vybrat').disabled = true;
+    $('hint').textContent = 'Okno pro výběr souboru je otevřené (může být i za prohlížečem).';
+    try { await post('/vybrat'); } catch (e) {}
+    vybiram = false;
+    $('vybrat').disabled = false;
+    $('hint').textContent = 'Podporované formáty: mp3, wav, flac';
+    obnov();
+  }
+
+  function popisStavu(p) {
+    switch (p.stav) {
+      case 'ceka': return ['Čeká na zpracování', ''];
+      case 'priprava': return ['Připravuji nahrávku…', ''];
+      case 'prepis': {
+        if (p.procenta === 0) return ['Načítám model a začínám přepisovat…', ''];
+        let t = 'Přepisuji ' + p.procenta + ' %';
+        if (p.procenta >= 3 && p.procenta < 100) {
+          const zbyva = Math.round(p.sekundy * (100 - p.procenta) / p.procenta);
+          t += ' · zbývá asi ' + cas(zbyva);
+        }
+        return [t, ''];
+      }
+      case 'hotovo': return ['Hotovo za ' + cas(p.sekundy), 'ok'];
+      case 'chyba': return ['Chyba: ' + p.chyba, 'err'];
+      case 'zastaveno': return ['Zastaveno', ''];
+    }
+    return [p.stav, ''];
+  }
+
+  function karta(p) {
+    const [text, trida] = popisStavu(p);
+    let bar = '';
+    if (p.stav === 'priprava' || (p.stav === 'prepis' && p.procenta === 0)) bar = '<div class="bar busy"><div></div></div>';
+    else if (p.stav === 'prepis') bar = `<div class="bar"><div style="width:${p.procenta}%"></div></div>`;
+    else if (p.stav === 'hotovo') bar = '<div class="bar ok"><div style="width:100%"></div></div>';
+
+    let nahled = '';
+    if (p.stav === 'prepis' && p.nahled && p.nahled.length)
+      nahled = '<div class="preview">' + p.nahled.map(r => '<p>' + esc(r) + '</p>').join('') + '</div>';
+
+    let tlacitka = '';
+    if (p.stav === 'hotovo') {
+      tlacitka = tlacitkaHtml('id=' + p.id, true) +
+        `<div class="state" style="margin-top:8px">Uloženo: ${esc(p.cil)}</div>
+        <div id="text-id=${p.id}"></div>`;
+    } else if (p.stav !== 'chyba' && p.stav !== 'zastaveno') {
+      tlacitka = tlacitkaHtml('id=' + p.id, true, true, true);
+    }
+
+    nazvy['id=' + p.id] = p.nazev;
+    return `<div class="card" id="karta-${p.id}">
+      <div class="row"><span class="name">${esc(p.nazev)}</span><span class="state ${trida}">${esc(text + modelText(p.model))}</span></div>
+      ${bar}${nahled}${tlacitka}</div>`;
+  }
+
+  function tlacitkaHtml(q, sZobrazenim, neaktivni, sZastavenim) {
+    const d = neaktivni ? ' disabled title="Bude dostupné po dokončení přepisu"' : '';
+    return `<div class="buttons">
+        <button data-akce="otevrit" data-q="${q}"${d}>Otevřít přepis</button>
+        <button data-akce="slozka" data-q="${q}"${d}>Zobrazit ve složce</button>
+        <button data-akce="kopirovat" data-q="${q}"${d}>Kopírovat text</button>
+        ${sZobrazenim ? `<button data-akce="zobrazit" data-q="${q}"${d}>${otevreneTexty.has(q) ? 'Skrýt text' : 'Zobrazit text'}</button>` : ''}
+        ${sZastavenim ? `<button class="stop" data-akce="zastavit" data-q="${q}">Zastavit</button>` : ''}
+      </div>`;
+  }
+
+  async function nactiText(q) {
+    const r = await fetch('/text?' + q);
+    return r.ok ? await r.text() : '';
+  }
+
+  function casText(s) {
+    const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = s % 60;
+    return (h ? h + ':' : '') + String(m).padStart(h ? 2 : 1, '0') + ':' + String(x).padStart(2, '0');
+  }
+
+  // Text přepisu: s časy (klik = přehrát od toho místa), u starších přepisů jen text
+  async function vykresliText(q) {
+    const misto = document.getElementById('text-' + q);
+    if (!misto) return;
+    if (!otevreneTexty.has(q)) { misto.innerHTML = ''; return; }
+    if (misto.firstChild) return;
+    let radky = [];
+    try { const r = await fetch('/casy?' + q); if (r.ok) radky = await r.json(); } catch (e) {}
+    if (radky.length) {
+      misto.innerHTML = '<div class="casy">' + radky.map(r =>
+        `<div class="r" data-s="${r.s}"><button class="cas" data-akce="prehrat" data-q="${q}" data-s="${r.s}" title="Přehrát od tohoto místa">${casText(r.s)}</button><span>${esc(r.t)}</span></div>`
+      ).join('') + '</div>';
+      zvyrazniRadek();
+    } else {
+      misto.innerHTML = '<textarea readonly>' + esc(await nactiText(q)) + '</textarea>';
+    }
+  }
+
+  // Přehrávač dole na stránce
+  const nazvy = {};
+  const audio = $('audio');
+  let hrajeQ = null;
+  function prehraj(q, s) {
+    $('prehravac').style.display = 'block';
+    document.body.classList.add('hraje');
+    $('titul').textContent = nazvy[q] || '';
+    const start = () => { audio.currentTime = s; audio.play().catch(() => {}); };
+    if (hrajeQ !== q) {
+      hrajeQ = q;
+      audio.src = '/zvuk?' + q;
+      audio.addEventListener('loadedmetadata', start, { once: true });
+      audio.load();
+    } else start();
+  }
+  // Zvýrazní přehrávaný řádek a posune okénko s textem tak, aby byl nahoře
+  function zvyrazniRadek() {
+    const stary = document.querySelector('.casy .r.ted');
+    let novy = null;
+    const misto = hrajeQ && document.getElementById('text-' + hrajeQ);
+    if (misto) {
+      for (const r of misto.querySelectorAll('.r')) { if (Number(r.dataset.s) <= audio.currentTime) novy = r; else break; }
+    }
+    if (novy === stary) return;
+    if (stary) stary.classList.remove('ted');
+    if (!novy) return;
+    novy.classList.add('ted');
+    const okno = novy.closest('.casy');
+    okno.scrollTo({ top: novy.offsetTop - 6, behavior: stary ? 'smooth' : 'auto' });
+  }
+  audio.addEventListener('timeupdate', zvyrazniRadek);
+  $('zavritPrehravac').addEventListener('click', () => {
+    audio.pause(); audio.removeAttribute('src'); audio.load(); hrajeQ = null;
+    $('prehravac').style.display = 'none'; document.body.classList.remove('hraje'); zvyrazniRadek();
+  });
+
+  // Hledání ve všech přepisech
+  let hledaniCasovac = null, posledniDotaz = '';
+  function bezDiakritiky(t) { return t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+  function zvyrazni(text, dotaz) {
+    const n = bezDiakritiky(text), d = bezDiakritiky(dotaz.trim());
+    const i = n.indexOf(d);
+    if (!d || i < 0 || n.length !== text.length) return esc(text);
+    return esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + d.length)) + '</mark>' + esc(text.slice(i + d.length));
+  }
+  async function hledej() {
+    const dotaz = $('hledat').value;
+    posledniDotaz = dotaz;
+    if (dotaz.trim().length < 2) { $('vysledky').innerHTML = ''; return; }
+    let v = [];
+    try { v = await (await fetch('/hledat?q=' + encodeURIComponent(dotaz))).json(); } catch (e) { return; }
+    if (dotaz !== posledniDotaz) return;
+    if (!v.length) { $('vysledky').innerHTML = '<div class="vysledky"><div class="nic">Nic nenalezeno.</div></div>'; return; }
+    $('vysledky').innerHTML = '<div class="vysledky"><div class="vysledek hlavicka"><span>Přehrát</span><span>Zdroj</span><span>Přepis</span></div>' + v.map(x => {
+      nazvy['h=' + x.h] = x.nazev;
+      const cas = x.s >= 0
+        ? `<button class="cas" data-akce="prehrat" data-q="h=${x.h}" data-s="${x.s}" data-otevrit="${x.h}" title="Přehrát od tohoto místa">${casText(x.s)}</button>`
+        : `<button class="cas" data-akce="ukazat" data-otevrit="${x.h}" title="Otevřít přepis">text</button>`;
+      return `<div class="vysledek">${cas}<span class="kde" title="${esc(x.nazev + (x.datum ? ' · ' + x.datum : ''))}">${esc(x.nazev)}</span><span>${zvyrazni(x.t, dotaz)}</span></div>`;
+    }).join('') + '</div>';
+  }
+  $('hledat').addEventListener('input', () => { clearTimeout(hledaniCasovac); hledaniCasovac = setTimeout(hledej, 300); });
+  function otevriHistorii(h) {
+    if (otevrenaHistorie === h) return;
+    otevreneTexty.delete('h=' + otevrenaHistorie);
+    otevrenaHistorie = h; otevreneTexty.add('h=' + h);
+    posledniHistorie = '';
+    obnovHistorii();
+  }
+
+  // Historie přepisů
+  let otevrenaHistorie = null;
+  let posledniHistorie = '';
+  let pocetHotovych = -1;
+
+  async function obnovHistorii() {
+    let h;
+    try { h = await (await fetch('/historie')).json(); } catch (e) { return; }
+    const html = h.length ? '<div class="hist">' + h.map(z => {
+      const q = 'h=' + z.h, otevrena = otevrenaHistorie === z.h;
+      nazvy[q] = z.nazev;
+      let telo = '';
+      if (otevrena) {
+        telo = z.existuje
+          ? '<div class="hbody">' + tlacitkaHtml(q, false) +
+            `<div class="state" style="margin-top:8px">${esc(z.cil)}</div><div id="text-${q}"></div></div>`
+          : `<div class="hbody"><span class="state err">Soubor s přepisem už neexistuje: ${esc(z.cil)}</span></div>`;
+      }
+      return `<div class="hrow"><button class="hhead" data-h="${z.h}">
+          <span><span class="chev">${otevrena ? '▾' : '▸'}</span><span class="name">${esc(z.nazev)}</span></span>
+          <span class="state">${esc(z.datum)}${z.delka ? ' · nahrávka ' + cas(z.delka) : ''}${z.model ? ' · ' + esc(z.model) : ''}</span>
+        </button>${telo}</div>`;
+    }).join('') + '</div>'
+      : '<div class="empty">Zatím tu nic není. Dokončené přepisy se tu budou ukládat.</div>';
+    if (html !== posledniHistorie) {
+      $('historie').innerHTML = html;
+      posledniHistorie = html;
+      if (otevrenaHistorie !== null) vykresliText('h=' + otevrenaHistorie);
+    }
+  }
+
+  let zobrazitModel = false;
+  function modelText(k) { return zobrazitModel && k ? ' · model ' + k : ''; }
+
+  let posledniHtml = '';
+  async function obnov() {
+    let s;
+    try {
+      const r = await fetch('/stav');
+      s = await r.json();
+      spojeni = true;
+    } catch (e) {
+      if (spojeni) {
+        spojeni = false;
+        document.body.innerHTML = '<main class="gone"><h1>Přepis nahrávek je ukončený</h1>' +
+          '<p class="sub">Pro další přepis spusťte znovu Prepis.bat.</p></main>';
+      }
+      return;
+    }
+
+    if (s.gpuStav === 'pripravena' || s.gpuStav === 'stahuji') $('hw').textContent = 'Grafická karta ' + (s.gpuNazev || 'NVIDIA');
+    else $('hw').textContent = 'Výpočet na procesoru';
+
+    let banner = '';
+    if (s.gpuStav === 'stahuji')
+      banner = '<div class="banner">Jednorázově stahuji zrychlení pro grafickou kartu (asi 670 MB). Přepis začne, jakmile bude staženo.</div>';
+    else if (s.gpuStav === 'selhala')
+      banner = '<div class="banner">Zrychlení pro grafickou kartu se nepodařilo stáhnout, přepis poběží na procesoru (pomaleji).</div>';
+    $('banner').innerHTML = banner;
+
+    // Volba modelu (jen když je ve složce Modely víc než jeden)
+    const sel = $('model');
+    if (s.modely && s.modely.length > 1) {
+      $('volba').style.display = 'flex';
+      const moznosti = s.modely.map(m => `<option value="${esc(m.klic)}">${esc(m.nazev)}</option>`).join('');
+      if (sel.dataset.m !== moznosti) { sel.innerHTML = moznosti; sel.dataset.m = moznosti; }
+      if (document.activeElement !== sel) sel.value = s.zvolenyModel;
+    }
+    zobrazitModel = s.modely && s.modely.length > 1;
+
+    if (s.polozky.length) {
+      const html = s.polozky.slice().reverse().map(karta).join('');
+      if (html !== posledniHtml) {
+        $('seznam').innerHTML = html;
+        posledniHtml = html;
+        for (const q of otevreneTexty) vykresliText(q);
+      }
+    }
+
+    const hotove = s.polozky.filter(p => p.stav === 'hotovo').length;
+    if (hotove !== pocetHotovych) { pocetHotovych = hotove; obnovHistorii(); }
+
+    if (s.autoVyber && !vybiram) vybrat();
+  }
+
+  $('vybrat').addEventListener('click', vybrat);
+  $('model').addEventListener('change', (e) => post('/model?k=' + encodeURIComponent(e.target.value)));
+  $('opravy').addEventListener('click', () => post('/opravy'));
+  async function akce(e) {
+    const hlava = e.target.closest('button[data-h]');
+    if (hlava) {
+      const h = Number(hlava.dataset.h);
+      otevreneTexty.delete('h=' + otevrenaHistorie);
+      otevrenaHistorie = otevrenaHistorie === h ? null : h;
+      if (otevrenaHistorie !== null) otevreneTexty.add('h=' + h);
+      posledniHistorie = '';
+      obnovHistorii();
+      return;
+    }
+    const b = e.target.closest('button[data-akce]');
+    if (!b) return;
+    const q = b.dataset.q, akce = b.dataset.akce;
+    if (b.dataset.otevrit !== undefined) otevriHistorii(Number(b.dataset.otevrit));
+    if (akce === 'prehrat') prehraj(q, Number(b.dataset.s));
+    if (akce === 'otevrit') post('/otevrit?' + q);
+    if (akce === 'slozka') post('/slozka?' + q);
+    if (akce === 'zastavit') {
+      if (!confirm('Opravdu zastavit přepis? Rozpracovaný text se neuloží.')) return;
+      b.disabled = true;
+      await post('/zastavit?' + q);
+      obnov();
+    }
+    if (akce === 'kopirovat') {
+      const t = await nactiText(q);
+      try { await navigator.clipboard.writeText(t); b.textContent = 'Zkopírováno'; }
+      catch (err) { b.textContent = 'Nelze kopírovat'; }
+      setTimeout(() => { b.textContent = 'Kopírovat text'; }, 1500);
+    }
+    if (akce === 'zobrazit') {
+      if (otevreneTexty.has(q)) otevreneTexty.delete(q); else otevreneTexty.add(q);
+      posledniHtml = '';
+      obnov();
+    }
+  }
+  $('seznam').addEventListener('click', akce);
+  $('historie').addEventListener('click', akce);
+  $('vysledky').addEventListener('click', akce);
+
+  // Po zavření stránky dát programu vědět, ať se ukončí (pokud nic nepřepisuje)
+  window.addEventListener('pagehide', () => { try { navigator.sendBeacon('/konec', ''); } catch (e) {} });
+
+  obnov();
+  setInterval(obnov, 800);
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# Modely jsou velké, stahují se zvlášť (viz README)
+Modely/*.bin
+# GPU verze se stáhne sama při prvním spuštění
+nastroj/gpu/
+__pycache__/
+# Nahrávky a přepisy se do repozitáře neukládají
+*.mp3
+*.wav
+*.m4a
+data/*
+!data/opravy.txt
+!data/model.txt
